@@ -10,8 +10,11 @@ __pycache__/
 venv/
 env/
 
+# Database
+*.db
+
 # Alembic
-migrations/versions/
+# migrations/versions/ is commented out so version scripts are committed
 
 # IDE
 .vscode/
