@@ -13,3 +13,12 @@ class AllocationResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class AllocationCreate(BaseModel):
+    employee_id: int
+    project_id: int
+    utilisation_percent: int
+    from_date: date
+    to_date: date
+
