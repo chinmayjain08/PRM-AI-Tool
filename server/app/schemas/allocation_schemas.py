@@ -1,1 +1,15 @@
-# TODO: implement
+from datetime import date
+from pydantic import BaseModel
+
+
+class AllocationResponse(BaseModel):
+    id: int
+    employee_id: int
+    project_id: int
+    utilisation_percent: int
+    from_date: date
+    to_date: date
+    is_active: bool
+
+    class Config:
+        from_attributes = True
