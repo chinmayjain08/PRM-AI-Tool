@@ -12,3 +12,4 @@ requests
 google-generativeai
 groq
 alembic
+email-validator

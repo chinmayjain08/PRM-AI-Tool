@@ -19,7 +19,7 @@ from app.models.system_config import SystemConfig
 
 
 DEFAULT_ADMIN_USERNAME = "admin"
-DEFAULT_ADMIN_EMAIL    = "admin@prm.local"
+DEFAULT_ADMIN_EMAIL    = "admin@prmtool.com"
 DEFAULT_ADMIN_PASSWORD = "Admin@1234"
 
 
