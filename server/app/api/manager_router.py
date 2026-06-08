@@ -133,6 +133,13 @@ def get_my_projects(
     current_user: User    = Depends(require_manager),
 ):
     projects = project_repository.get_projects_by_manager(db, current_user.id)
+    for p in projects:
+        fresh_status = project_health_service.compute_health_for_project(db, p.id)
+        if p.health_status != fresh_status:
+            project_repository.update_project_fields(db, p.id, {"health_status": fresh_status})
+            
+    # Re-fetch projects to return updated objects
+    projects = project_repository.get_projects_by_manager(db, current_user.id)
     return [
         {
             "id": p.id,
@@ -159,6 +166,11 @@ def get_project_detail(
     project = project_repository.get_project_by_id(db, project_id)
     if project is None or project.manager_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your project")
+
+    # Update health status on the fly
+    fresh_status = project_health_service.compute_health_for_project(db, project.id)
+    if project.health_status != fresh_status:
+        project = project_repository.update_project_fields(db, project.id, {"health_status": fresh_status})
 
     milestones   = project_repository.get_milestones_for_project(db, project_id)
     allocations  = allocation_repository.get_all_allocations(db, project_id_filter=project_id)
