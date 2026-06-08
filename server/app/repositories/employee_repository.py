@@ -50,3 +50,13 @@ def assign_manager(db: Session, employee_user_id: int, manager_user_id: int) -> 
         {"manager_id": manager_user_id}
     )
     db.commit()
+
+
+def get_employees_by_manager(db: Session, manager_user_id: int) -> list[Employee]:
+    """Returns all active employees assigned to this manager."""
+    return (
+        db.query(Employee)
+        .filter(Employee.manager_id == manager_user_id, Employee.is_active == True)
+        .all()
+    )
+

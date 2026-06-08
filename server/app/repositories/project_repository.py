@@ -51,3 +51,8 @@ def add_milestone(
 def update_milestone_status(db: Session, milestone_id: int, status: str) -> None:
     db.query(Milestone).filter(Milestone.id == milestone_id).update({"status": status})
     db.commit()
+
+
+def get_projects_by_manager(db: Session, manager_user_id: int) -> list[Project]:
+    return db.query(Project).filter(Project.manager_id == manager_user_id).all()
+
