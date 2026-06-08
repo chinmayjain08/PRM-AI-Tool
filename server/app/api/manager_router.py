@@ -250,18 +250,52 @@ def get_team_timesheets(
     ]
 
 
-# ── AI (Stubs — implemented in Phase 7) ──────────────────────────────────────
+# ── AI (Wired in Phase 7) ──────────────────────────────────────
 
 @router.post("/ai/skill-match")
-def ai_skill_match(body: dict, db: Session = Depends(get_db), current_user: User = Depends(require_manager)):
-    """Stub. Implemented in Phase 7."""
-    return {"message": "AI Skill Match not yet configured. Implement in Phase 7."}
+def ai_skill_match(
+    body:         dict,
+    db:           Session = Depends(get_db),
+    current_user: User    = Depends(require_manager),
+):
+    """
+    Finds best-fit employees for the given requirement using AI.
+    Body: { "requirement": "I need a Java developer..." }
+    """
+    from app.services.ai_skill_matcher import find_best_matches
+    try:
+        results = find_best_matches(db, body["requirement"], current_user.id)
+        if not results:
+            return {"results": [], "message": "No available employees match this requirement."}
+        return {"results": results}
+    except Exception as error:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"AI service error: {str(error)}"
+        )
 
 
 @router.get("/ai/risk-summary/{project_id}")
-def ai_risk_summary(project_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_manager)):
-    """Stub. Implemented in Phase 7."""
-    return {"message": "AI Risk Summary not yet configured. Implement in Phase 7."}
+def ai_risk_summary(
+    project_id:   int,
+    db:           Session = Depends(get_db),
+    current_user: User    = Depends(require_manager),
+):
+    """Generates a plain-English risk summary for the given project."""
+    project = project_repository.get_project_by_id(db, project_id)
+    if project is None or project.manager_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your project")
+
+    from app.services.ai_risk_summarizer import generate_risk_summary
+    try:
+        summary = generate_risk_summary(db, project_id)
+        return {"summary": summary}
+    except Exception as error:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"AI service error: {str(error)}"
+        )
+
 
 
 # ── Private helpers ───────────────────────────────────────────────────────────
