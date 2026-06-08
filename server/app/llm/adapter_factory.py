@@ -18,16 +18,27 @@ def get_llm_adapter(db) -> LLMAdapter:
     if not config:
         raise ValueError("System configuration not found.")
 
-    if not config.llm_api_key or config.llm_api_key.strip() == "":
-        raise ValueError("LLM API key is not set or is empty. Please configure it in System Configuration.")
+    provider = config.llm_provider
+    api_key = config.llm_api_key
 
-    if config.llm_provider == "gemini":
+    # If database API key is empty/unset, fallback to .env/environment settings
+    if not api_key or api_key.strip() == "":
+        from app.core.config import settings
+        if provider == "gemini":
+            api_key = settings.GEMINI_API_KEY
+        elif provider == "groq":
+            api_key = settings.GROQ_API_KEY
+
+    if not api_key or api_key.strip() == "":
+        raise ValueError("LLM API key is not set or is empty. Please configure it in System Configuration or .env.")
+
+    if provider == "gemini":
         from app.llm.gemini_adapter import GeminiAdapter
-        return GeminiAdapter(api_key=config.llm_api_key)
+        return GeminiAdapter(api_key=api_key)
 
-    if config.llm_provider == "groq":
+    if provider == "groq":
         from app.llm.groq_adapter import GroqAdapter
-        return GroqAdapter(api_key=config.llm_api_key)
+        return GroqAdapter(api_key=api_key)
 
     raise ValueError(
         f"Unknown LLM provider: '{config.llm_provider}'. "

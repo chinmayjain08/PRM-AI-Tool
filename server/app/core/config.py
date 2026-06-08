@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic_settings import BaseSettings
 
 
@@ -7,6 +8,10 @@ class Settings(BaseSettings):
     SECRET_KEY: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 480
     ALGORITHM: str = "HS256"
+
+    # API Keys loaded from environment variables / .env as fallbacks
+    GEMINI_API_KEY: Optional[str] = None
+    GROQ_API_KEY: Optional[str] = None
 
     # ── Business rule constants ─────────────────────────────────────────────
     # All numeric thresholds live here — never hardcode them in logic files.
