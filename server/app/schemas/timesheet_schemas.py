@@ -23,3 +23,15 @@ class TimesheetResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class TimesheetEntryCreate(BaseModel):
+    project_id: int
+    hours_worked: int
+    tags: list[str] = []
+
+
+class TimesheetSubmission(BaseModel):
+    week_start: date
+    entries: list[TimesheetEntryCreate]
+
