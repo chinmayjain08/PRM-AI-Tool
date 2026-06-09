@@ -3,7 +3,11 @@ Application entry point.
 Handles login, routes to the correct role menu.
 """
 
+import os
 import sys
+
+# Add the parent folder to the python path so 'client' package can be found
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from client.api_client.http_client import HttpClient
 from client.screens.login_screen import show_login_screen
