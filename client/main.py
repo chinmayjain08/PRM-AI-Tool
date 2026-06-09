@@ -25,18 +25,24 @@ def main() -> None:
     try:
         token, role, full_name = show_login_screen()
         HttpClient.set_token(token)
-        _launch_menu_for_role(role)
+        _launch_menu_for_role(role, full_name)
     except KeyboardInterrupt:
         print("\n\nGoodbye.")
         sys.exit(0)
 
 
-def _launch_menu_for_role(role: str) -> None:
+def _launch_menu_for_role(role: str, full_name: str) -> None:
     """Routes the logged-in user to their role-specific menu."""
     menu_function = ROLE_TO_MENU.get(role)
     if menu_function is None:
         raise ValueError(f"Unknown role received from server: '{role}'")
-    menu_function()
+    
+    import inspect
+    sig = inspect.signature(menu_function)
+    if "full_name" in sig.parameters:
+        menu_function(full_name)
+    else:
+        menu_function()
 
 
 if __name__ == "__main__":
