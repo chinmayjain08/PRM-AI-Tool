@@ -11,7 +11,7 @@ class GeminiAdapter(LLMAdapter):
         if api_key != "mock-key":
             import google.generativeai as genai
             genai.configure(api_key=api_key)
-            self._model = genai.GenerativeModel("gemini-1.5-flash")
+            self._model = genai.GenerativeModel("gemini-3.5-flash")
 
     def complete(self, prompt: str) -> str:
         """Sends prompt to Gemini and returns the response text."""

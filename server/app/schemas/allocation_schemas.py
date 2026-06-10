@@ -6,6 +6,8 @@ class AllocationResponse(BaseModel):
     id: int
     employee_id: int
     project_id: int
+    project_name: str
+    max_hours: int
     utilisation_percent: int
     from_date: date
     to_date: date

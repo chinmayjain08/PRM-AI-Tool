@@ -7,11 +7,12 @@ from app.models.user import User
 from app.repositories import allocation_repository, employee_repository
 from app.services import timesheet_service
 from app.schemas.timesheet_schemas import TimesheetSubmission
+from app.schemas.allocation_schemas import AllocationResponse
 
 router = APIRouter(dependencies=[Depends(require_employee)])
 
 
-@router.get("/allocations")
+@router.get("/allocations", response_model=list[AllocationResponse])
 def get_my_allocations(
     db:           Session = Depends(get_db),
     current_user: User    = Depends(require_employee),
@@ -23,7 +24,7 @@ def get_my_allocations(
     return allocation_repository.get_active_allocations_for_employee(db, employee.id)
 
 
-@router.get("/active-allocations")
+@router.get("/active-allocations", response_model=list[AllocationResponse])
 def get_active_allocations_for_week(
     week_start:   str    = None,
     db:           Session = Depends(get_db),

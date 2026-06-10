@@ -68,13 +68,13 @@ def _view_week_detail_flow() -> None:
     try:
         entries = employee_api.fetch_week_detail(week_start)
         draw_box(f"TIMESHEET FOR WEEK: {raw_date}")
-        if entries:
+        if entries and "entries" in entries:
             from client.utils.display import print_table_header, print_table_row
             header = ["Project", "Hours", "Status", "Activity Tags"]
             widths = [16, 6, 10, 20]
             print_table_header(header, widths)
             
-            for e in entries:
+            for e in entries.get("entries", []):
                 tags_str = ", ".join(e.get("tags", []))
                 print_table_row([
                     e.get("project_name") or "",

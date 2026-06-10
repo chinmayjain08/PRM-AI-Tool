@@ -86,7 +86,7 @@ def _drill_down_flow() -> None:
         print("\nActive Project Allocations:")
         if emp.get("allocations"):
             for a in emp.get("allocations"):
-                print(f"  - Project: {a.get('project_name')} | Utilisation: {a.get('utilisation_percent')}% | Range: {a.get('from_date')} to {a.get('to_date')}")
+                print(f"  - Allocation ID: {a.get('id')} | Project: {a.get('project_name')} | Utilisation: {a.get('utilisation_percent')}% | Range: {a.get('from_date')} to {a.get('to_date')}")
         else:
             print("  No active allocations.")
             
