@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # PRM Tool — Project & Resource Management
 
 A Python console application for managing people, projects, and timesheets across three roles: Admin, Manager, and Employee.
@@ -320,3 +321,7 @@ The LLM provider and API key are configured in the Admin → System Configuratio
 - Reads project milestones, due dates, effort data
 - Collects risk flags from the health service
 - Returns a 3–5 sentence plain-English paragraph
+=======
+# PRM-AI-Tool
+Console-based client-server application problems faced by IT companies. It replaces manual spreadsheet-driven resource planning with a single, intelligent system that tracks employees, projects, allocations, and timesheets - and uses an LLM to intelligently match people to projects and surface project health risks in plain English.
+>>>>>>> 7044b9682d0c34f829807be86f0240f885633671
