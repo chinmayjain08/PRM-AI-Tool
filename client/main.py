@@ -27,9 +27,11 @@ ROLE_TO_MENU = {
 
 def main() -> None:
     try:
-        token, role, full_name = show_login_screen()
-        HttpClient.set_token(token)
-        _launch_menu_for_role(role, full_name)
+        while True:
+            HttpClient.set_token(None)
+            token, role, full_name = show_login_screen()
+            HttpClient.set_token(token)
+            _launch_menu_for_role(role, full_name)
     except KeyboardInterrupt:
         print("\n\nGoodbye.")
         sys.exit(0)

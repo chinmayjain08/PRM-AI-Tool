@@ -36,5 +36,13 @@ def ai_skill_match(requirement: str):
     return HttpClient.post("/manager/ai/skill-match", {"requirement": requirement})
 
 
+def ai_team_build(requirement: str):
+    return HttpClient.post("/manager/ai/team-build", {"requirement": requirement})
+
+
 def ai_risk_summary(project_id: int):
     return HttpClient.get(f"/manager/ai/risk-summary/{project_id}")
+
+
+def restore_timesheet_access(employee_id: int):
+    return HttpClient.post(f"/manager/employees/{employee_id}/restore-timesheet-access", {})

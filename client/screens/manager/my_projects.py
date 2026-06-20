@@ -1,3 +1,4 @@
+from datetime import date, datetime
 from client.api_client import manager_api
 from client.api_client.http_client import ServerError
 from client.utils.constants import HEALTH_ICONS
@@ -16,14 +17,14 @@ def show_my_projects() -> None:
 
         if projects:
             from client.utils.display import print_table_header, print_table_row
-            header = ["ID", "Project Name", "Status", "Health"]
-            widths = [6, 18, 12, 14]
+            header = ["#", "Project Name", "Status", "Health"]
+            widths = [4, 20, 12, 14]
             print_table_header(header, widths)
-            for p in projects:
+            for idx, p in enumerate(projects, start=1):
                 health = p.get("health_status")
                 icon = HEALTH_ICONS.get(health, "⚪")
                 print_table_row([
-                    p.get("id"),
+                    idx,
                     p.get("name"),
                     p.get("status"),
                     f"{icon} {health}",
@@ -46,12 +47,11 @@ def show_my_projects() -> None:
 
 
 def _drill_down_flow(projects: list) -> None:
-    p_id = prompt_integer("Enter Project ID to view", 1, 99999)
-    existing = next((p for p in projects if p.get("id") == p_id), None)
-    if not existing:
-        print_error("Project ID not found in your list.")
-        input("Press Enter to continue...")
+    choice = prompt_integer(f"Select project number to view details (1-{len(projects)} or 0 to cancel)", 0, len(projects))
+    if choice == 0:
         return
+    existing = projects[choice - 1]
+    p_id = existing.get("id")
 
     while True:
         try:
@@ -82,16 +82,36 @@ def _drill_down_flow(projects: list) -> None:
         print("\n--- MILESTONES ---")
         if milestones:
             from client.utils.display import print_table_header, print_table_row
-            header = ["ID", "Milestone Title", "Due Date", "Story Pts", "Status"]
-            widths = [6, 18, 12, 10, 14]
+            header = ["#", "Milestone Title", "Due Date", "Story Pts", "Status"]
+            widths = [4, 18, 12, 10, 18]
             print_table_header(header, widths)
-            for m in milestones:
+            
+            today_str = date.today().strftime("%Y-%m-%d")
+            for idx, m in enumerate(milestones, start=1):
+                status = m.get("status")
+                due_date_str = m.get("due_date")
+                display_due_date = due_date_str
+                is_overdue = False
+                
+                if due_date_str:
+                    try:
+                        dt = datetime.strptime(due_date_str, "%Y-%m-%d")
+                        display_due_date = dt.strftime("%d-%m-%Y")
+                        if due_date_str < today_str and status != "DONE":
+                            is_overdue = True
+                    except ValueError:
+                        pass
+                
+                status_display = status
+                if is_overdue:
+                    status_display += "  ⚠ OVERDUE"
+                
                 print_table_row([
-                    m.get("id"),
+                    idx,
                     m.get("title"),
-                    m.get("due_date"),
+                    display_due_date,
                     m.get("story_points"),
-                    m.get("status"),
+                    status_display,
                 ], widths)
         else:
             print("  No milestones defined.")
@@ -99,16 +119,22 @@ def _drill_down_flow(projects: list) -> None:
         print("\n--- ACTIVE TEAM ALLOCATIONS ---")
         if allocations:
             from client.utils.display import print_table_header, print_table_row
-            header = ["ID", "Employee Name", "Util %", "From Date", "To Date"]
-            widths = [6, 18, 8, 12, 12]
+            header = ["Name", "%", "From", "To"]
+            widths = [18, 6, 12, 12]
             print_table_header(header, widths)
             for a in allocations:
+                from_dt_str = a.get("from_date")
+                to_dt_str = a.get("to_date")
+                try:
+                    from_dt_str = datetime.strptime(from_dt_str, "%Y-%m-%d").strftime("%d-%m-%Y")
+                    to_dt_str = datetime.strptime(to_dt_str, "%Y-%m-%d").strftime("%d-%m-%Y")
+                except (ValueError, TypeError):
+                    pass
                 print_table_row([
-                    a.get("id"),
                     a.get("employee_name"),
                     f"{a.get('utilisation_percent')}%",
-                    a.get("from_date"),
-                    a.get("to_date"),
+                    from_dt_str,
+                    to_dt_str,
                 ], widths)
         else:
             print("  No active allocations.")

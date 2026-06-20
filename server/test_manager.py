@@ -16,67 +16,8 @@ BASE_URL = "http://localhost:8000"
 DB_FILE = "test.db"
 
 def setup_test_db():
-    print("Setting up test database for Manager APIs...")
-    if not os.path.exists(DB_FILE):
-        print("Error: test.db does not exist. Please run alembic migrations first.")
-        sys.exit(1)
-        
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
-    
-    # Enable foreign keys and clear tables
-    cursor.execute("PRAGMA foreign_keys = OFF;")
-    cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-    tables = [row[0] for row in cursor.fetchall() if row[0] not in ('sqlite_sequence', 'alembic_version')]
-    for table in tables:
-        cursor.execute(f"DELETE FROM {table};")
-    cursor.execute("PRAGMA foreign_keys = ON;")
-    
-    # Hash passwords
-    admin_pw = hash_password("NewAdmin@123")
-    mgr_pw = hash_password("Manager@123")
-    emp_pw = hash_password("Employee@123")
-    
-    # 1. Users
-    users_data = [
-        (1, "admin", "admin@prmtool.com", "System Admin", admin_pw, "ADMIN", 1, 0),
-        (2, "manager1", "manager1@prmtool.com", "Project Manager One", mgr_pw, "MANAGER", 1, 0),
-        (3, "manager2", "manager2@prmtool.com", "Project Manager Two", mgr_pw, "MANAGER", 1, 0),
-        (4, "employee1", "employee1@prmtool.com", "Developer Employee One", emp_pw, "EMPLOYEE", 1, 0),
-        (5, "employee2", "employee2@prmtool.com", "QA Employee Two", emp_pw, "EMPLOYEE", 1, 0),
-    ]
-    cursor.executemany(
-        "INSERT INTO users (id, username, email, full_name, hashed_password, role, is_active, force_password_change) VALUES (?, ?, ?, ?, ?, ?, ?, ?);",
-        users_data
-    )
-    
-    # 2. Employees profiles
-    employees_data = [
-        (1, 4, "Engineering", 2, 1, "2026-01-01"),  # Employee 1, manager is manager1 (user_id 2)
-        (2, 5, "QA", 3, 1, "2026-01-15"),           # Employee 2, manager is manager2 (user_id 3)
-    ]
-    cursor.executemany(
-        "INSERT INTO employees (id, user_id, department, manager_id, is_active, joined_at) VALUES (?, ?, ?, ?, ?, ?);",
-        employees_data
-    )
-    
-    # 3. Projects
-    projects_data = [
-        (1, "Alpha Portal", "Customer web portal", "2026-06-01", "2026-12-01", "ACTIVE", 2, 100, "ON_TRACK"),    # Manager 1
-        (2, "Beta Legacy", "Legacy app support", "2025-01-01", "2026-01-01", "COMPLETED", 2, 50, "ON_TRACK"),    # Manager 1
-        (3, "Gamma API", "Mobile backend services", "2026-06-01", "2026-10-01", "ACTIVE", 3, 80, "ON_TRACK"),   # Manager 2
-    ]
-    cursor.executemany(
-        "INSERT INTO projects (id, name, description, start_date, end_date, status, manager_id, total_story_pts, health_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);",
-        projects_data
-    )
-    
-    # 4. System config
-    cursor.execute("INSERT INTO system_config (id, llm_provider, scheduler_interval, max_weekly_hours) VALUES (1, 'gemini', 4, 40);")
-    
-    conn.commit()
-    conn.close()
-    print("Test database set up successfully.")
+    from test_setup_helper import populate_db
+    populate_db(DB_FILE, "manager")
 
 def run_tests():
     # Login as Manager 1
@@ -266,15 +207,15 @@ def run_tests():
     print("Timesheets response:", r.status_code, r.json())
     assert r.status_code == 200
 
-    # Test 8: AI Stubs
-    print("\n--- 9. Verifying AI Endpoints Stubs ---")
-    r = requests.post(f"{BASE_URL}/manager/ai/skill-match", json={"skills": ["Python"]}, headers=headers_m1)
+    # Test 8: AI Endpoints (using mock key)
+    print("\n--- 9. Verifying AI Endpoints (using mock-key) ---")
+    r = requests.post(f"{BASE_URL}/manager/ai/skill-match", json={"requirement": "I need Python developer"}, headers=headers_m1)
     assert r.status_code == 200
-    assert "AI Skill Match not yet configured" in r.json()["message"]
+    assert "Developer Employee One" in r.json()["results"][0]["name"]
 
     r = requests.get(f"{BASE_URL}/manager/ai/risk-summary/1", headers=headers_m1)
     assert r.status_code == 200
-    assert "AI Risk Summary not yet configured" in r.json()["message"]
+    assert "Alpha Portal" in r.json()["summary"]
 
     print("\nALL MANAGER API TESTS PASSED SUCCESSFULLY!")
 

@@ -2,8 +2,8 @@ from datetime import date, timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import get_db, require_manager
-from app.models.user import User
+from app.core.dependencies import get_db, require_permission
+from app.models.employee import Employee
 from app.repositories import (
     allocation_repository,
     employee_repository,
@@ -13,7 +13,7 @@ from app.repositories import (
 from app.services import allocation_service, project_health_service
 from app.schemas.allocation_schemas import AllocationCreate
 
-router = APIRouter(dependencies=[Depends(require_manager)])
+router = APIRouter()
 
 
 # ── Resource Dashboard ────────────────────────────────────────────────────────
@@ -21,11 +21,11 @@ router = APIRouter(dependencies=[Depends(require_manager)])
 @router.get("/dashboard")
 def get_resource_dashboard(
     db:           Session = Depends(get_db),
-    current_user: User    = Depends(require_manager),
+    current_user: Employee    = Depends(require_permission("VIEW_TEAM")),
 ):
     """
     Returns the manager's team split into bench and allocated groups.
-    Scope: employees where manager_id = current_user.id.
+    Scope: employees where manager_id = current_user's profile.id.
     """
     team = employee_repository.get_employees_by_manager(db, current_user.id)
     bench     = []
@@ -37,7 +37,7 @@ def get_resource_dashboard(
         if total_util == 0:
             bench.append(_format_bench_employee(employee))
         else:
-            allocated.append(_format_allocated_employee(employee, total_util))
+            allocated.append(_format_allocated_employee(employee, active_allocs))
 
     return {"bench": bench, "allocated": allocated}
 
@@ -46,21 +46,24 @@ def get_resource_dashboard(
 def get_employee_detail(
     employee_id:  int,
     db:           Session = Depends(get_db),
-    current_user: User    = Depends(require_manager),
+    current_user: Employee    = Depends(require_permission("VIEW_TEAM")),
 ):
     """Employee profile + skills + allocations + recent tags. Team-scoped."""
     employee = employee_repository.get_employee_by_id(db, employee_id)
-    if employee is None or employee.manager_id != current_user.id:
+    manager_profile = employee_repository.get_employee_by_user_id(db, current_user.id)
+    
+    if employee is None or not manager_profile or employee.manager_id != manager_profile.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your team member")
     
     return {
         "id": employee.id,
-        "user_id": employee.user_id,
+        "user_id": employee.employee_id,
         "department": employee.department,
         "joined_at": employee.joined_at,
-        "is_active": employee.is_active,
-        "full_name": employee.user.full_name,
-        "email": employee.user.email,
+        "is_active": employee.employee.is_active,
+        "timesheet_frozen": employee.timesheet_frozen,
+        "full_name": employee.employee.full_name,
+        "email": employee.employee.email,
         "skills": [
             {
                 "skill_name": es.skill.name,
@@ -82,13 +85,31 @@ def get_employee_detail(
     }
 
 
+@router.post("/employees/{employee_id}/restore-timesheet-access")
+def restore_timesheet_access(
+    employee_id:  int,
+    db:           Session = Depends(get_db),
+    current_user: Employee    = Depends(require_permission("MANAGE_ALLOCATIONS")),
+):
+    """Restores timesheet access for a frozen employee."""
+    employee = employee_repository.get_employee_by_id(db, employee_id)
+    manager_profile = employee_repository.get_employee_by_user_id(db, current_user.id)
+    
+    if employee is None or not manager_profile or employee.manager_id != manager_profile.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your team member")
+        
+    employee.timesheet_frozen = False
+    db.commit()
+    return {"message": "Timesheet access restored successfully"}
+
+
 # ── Allocation ────────────────────────────────────────────────────────────────
 
 @router.post("/allocations", status_code=status.HTTP_201_CREATED)
 def create_allocation(
     allocation_data: AllocationCreate,
     db:              Session = Depends(get_db),
-    current_user:    User    = Depends(require_manager),
+    current_user:    Employee    = Depends(require_permission("MANAGE_ALLOCATIONS")),
 ):
     # Assert project belongs to current manager
     project = project_repository.get_project_by_id(db, allocation_data.project_id)
@@ -116,7 +137,7 @@ def create_allocation(
 def end_allocation(
     allocation_id: int,
     db:            Session = Depends(get_db),
-    current_user:  User    = Depends(require_manager),
+    current_user:  Employee    = Depends(require_permission("MANAGE_ALLOCATIONS")),
 ):
     try:
         allocation_service.end_allocation(db, allocation_id, current_user.id)
@@ -130,7 +151,7 @@ def end_allocation(
 @router.get("/projects")
 def get_my_projects(
     db:           Session = Depends(get_db),
-    current_user: User    = Depends(require_manager),
+    current_user: Employee    = Depends(require_permission("MANAGE_PROJECTS")),
 ):
     projects = project_repository.get_projects_by_manager(db, current_user.id)
     for p in projects:
@@ -161,7 +182,7 @@ def get_my_projects(
 def get_project_detail(
     project_id:   int,
     db:           Session = Depends(get_db),
-    current_user: User    = Depends(require_manager),
+    current_user: Employee    = Depends(require_permission("MANAGE_PROJECTS")),
 ):
     project = project_repository.get_project_by_id(db, project_id)
     if project is None or project.manager_id != current_user.id:
@@ -176,8 +197,6 @@ def get_project_detail(
     allocations  = allocation_repository.get_all_allocations(db, project_id_filter=project_id)
     risk_flags   = project_health_service.collect_risk_flags(db, project_id)
 
-    # Convert project SQLAlchemy model fields to a dict or return clean structure
-    # to avoid circular references/Pydantic serialization warnings.
     return {
         "project": {
             "id": project.id,
@@ -205,7 +224,7 @@ def get_project_detail(
             {
                 "id": a.id,
                 "employee_id": a.employee_id,
-                "employee_name": a.employee.user.full_name,
+                "employee_name": a.employee.employee.full_name,
                 "utilisation_percent": a.utilisation_percent,
                 "from_date": a.from_date,
                 "to_date": a.to_date,
@@ -222,7 +241,7 @@ def get_project_detail(
 def get_team_timesheets(
     week_start:   str    = None,
     db:           Session = Depends(get_db),
-    current_user: User    = Depends(require_manager),
+    current_user: Employee    = Depends(require_permission("APPROVE_TIMESHEETS")),
 ):
     """
     Returns team's timesheet entries for the given week.
@@ -237,7 +256,7 @@ def get_team_timesheets(
         {
             "id": ts.id,
             "employee_id": ts.employee_id,
-            "employee_name": ts.employee.user.full_name,
+            "employee_name": ts.employee.employee.full_name,
             "project_id": ts.project_id,
             "project_name": ts.project.name,
             "week_start": ts.week_start,
@@ -250,13 +269,13 @@ def get_team_timesheets(
     ]
 
 
-# ── AI (Wired in Phase 7) ──────────────────────────────────────
+# ── AI ────────────────────────────────────────────────────────────────────────
 
 @router.post("/ai/skill-match")
 def ai_skill_match(
     body:         dict,
     db:           Session = Depends(get_db),
-    current_user: User    = Depends(require_manager),
+    current_user: Employee    = Depends(require_permission("MANAGE_ALLOCATIONS")),
 ):
     """
     Finds best-fit employees for the given requirement using AI.
@@ -275,11 +294,32 @@ def ai_skill_match(
         )
 
 
+@router.post("/ai/team-build")
+def ai_team_build(
+    body:         dict,
+    db:           Session = Depends(get_db),
+    current_user: Employee    = Depends(require_permission("MANAGE_ALLOCATIONS")),
+):
+    """
+    Finds best-fit employees for a whole team requirement using AI.
+    Body: { "requirement": "I need a Java developer, DevOps and QA..." }
+    """
+    from app.services.ai_skill_matcher import build_team
+    try:
+        results = build_team(db, body["requirement"], current_user.id)
+        return results
+    except Exception as error:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"AI service error: {str(error)}"
+        )
+
+
 @router.get("/ai/risk-summary/{project_id}")
 def ai_risk_summary(
     project_id:   int,
     db:           Session = Depends(get_db),
-    current_user: User    = Depends(require_manager),
+    current_user: Employee    = Depends(require_permission("MANAGE_PROJECTS")),
 ):
     """Generates a plain-English risk summary for the given project."""
     project = project_repository.get_project_by_id(db, project_id)
@@ -297,25 +337,25 @@ def ai_risk_summary(
         )
 
 
-
 # ── Private helpers ───────────────────────────────────────────────────────────
 
 def _format_bench_employee(employee) -> dict:
     return {
         "id":         employee.id,
-        "full_name":  employee.user.full_name,
+        "full_name":  employee.employee.full_name,
         "department": employee.department,
         "skills":     [es.skill.name for es in employee.skills],
     }
 
 
-def _format_allocated_employee(employee, total_util: int) -> dict:
-    free_percent = 100 - total_util
+def _format_allocated_employee(employee, active_allocs) -> dict:
+    total_util = sum(a.utilisation_percent for a in active_allocs)
+    project_names = ", ".join(a.project.name for a in active_allocs if a.project)
     return {
-        "id":           employee.id,
-        "full_name":    employee.user.full_name,
-        "utilisation":  total_util,
-        "availability": "FULL" if total_util == 100 else f"{free_percent}% free",
+        "id":                  employee.id,
+        "full_name":           employee.employee.full_name,
+        "project_name":        project_names,
+        "utilisation_percent": total_util,
     }
 
 

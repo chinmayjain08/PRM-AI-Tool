@@ -11,7 +11,12 @@ class Settings(BaseSettings):
 
     # API Keys loaded from environment variables / .env as fallbacks
     GEMINI_API_KEY: Optional[str] = None
-    GROQ_API_KEY: Optional[str] = None
+    GROQ_API_KEY:   Optional[str] = None
+
+    # Ollama / Gemma (self-hosted or remote Ollama-compatible endpoint)
+    OLLAMA_HOST:    str           = "http://164.52.211.238/api/generate"
+    OLLAMA_MODEL:   str           = "gemma3:12b-it-q8_0"
+    OLLAMA_API_KEY: Optional[str] = None    # leave blank if endpoint needs no auth
 
     # ── Business rule constants ─────────────────────────────────────────────
     # All numeric thresholds live here — never hardcode them in logic files.

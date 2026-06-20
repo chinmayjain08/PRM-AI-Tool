@@ -17,12 +17,18 @@ def show_create_user() -> None:
         role_idx = prompt_choice("Role", roles)
         role = roles[role_idx - 1]
 
+        print("\nSelect Department:")
+        departments = ["Engineering", "Delivery", "HR", "Finance", "Operations"]
+        dept_idx = prompt_choice("Department", departments)
+        dept = departments[dept_idx - 1].upper()
+
         payload = {
             "full_name": full_name,
             "email": email,
             "username": username,
             "temp_password": temp_pw,
-            "role": role
+            "role": role,
+            "department": dept
         }
 
         if confirm_action("Save new user account?"):

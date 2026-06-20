@@ -1,5 +1,6 @@
 from datetime import date, datetime
 from pydantic import BaseModel
+from app.models.enums import TimesheetStatus
 
 
 class TimesheetTagResponse(BaseModel):
@@ -17,12 +18,13 @@ class TimesheetResponse(BaseModel):
     project_id: int
     week_start: date
     hours_worked: int
-    status: str
+    status: TimesheetStatus
     submitted_at: datetime
     tags: list[TimesheetTagResponse] = []
 
     class Config:
         from_attributes = True
+
 
 
 class TimesheetEntryCreate(BaseModel):

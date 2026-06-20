@@ -1,10 +1,22 @@
 from datetime import date
 from pydantic import BaseModel
+from app.models.enums import ProficiencyLevel
 
 
 class EmployeeUpdate(BaseModel):
     department: str | None = None
     joined_at: date | None = None
+
+
+class UserNestedResponse(BaseModel):
+    id: int
+    username: str
+    email: str
+    full_name: str
+    role: str
+
+    class Config:
+        from_attributes = True
 
 
 class EmployeeResponse(BaseModel):
@@ -16,6 +28,9 @@ class EmployeeResponse(BaseModel):
     joined_at: date | None
     current_utilisation_percent: int | None = None
     status: str | None = None  # ALLOCATED | BENCH
+    full_name: str | None = None
+    email: str | None = None
+    user: UserNestedResponse | None = None
 
     class Config:
         from_attributes = True
@@ -29,8 +44,9 @@ class AssignManagerRequest(BaseModel):
 class SkillAddRequest(BaseModel):
     skill_name: str
     category: str
-    proficiency: str
+    proficiency: ProficiencyLevel
 
 
 class ProficiencyUpdateRequest(BaseModel):
-    proficiency: str
+    proficiency: ProficiencyLevel
+

@@ -1,5 +1,6 @@
 from datetime import date
 from pydantic import BaseModel
+from app.models.enums import ProjectStatus, ProjectHealthStatus, MilestoneStatus
 
 
 class ProjectCreate(BaseModel):
@@ -7,7 +8,7 @@ class ProjectCreate(BaseModel):
     description: str | None = None
     start_date: date | None = None
     end_date: date | None = None
-    status: str = "PLANNED"  # PLANNED | ACTIVE | ON_HOLD | COMPLETED
+    status: ProjectStatus = ProjectStatus.PLANNED
     manager_id: int
     total_story_pts: int = 0
 
@@ -17,7 +18,7 @@ class ProjectUpdate(BaseModel):
     description: str | None = None
     start_date: date | None = None
     end_date: date | None = None
-    status: str | None = None
+    status: ProjectStatus | None = None
     manager_id: int | None = None
     total_story_pts: int | None = None
 
@@ -28,10 +29,10 @@ class ProjectResponse(BaseModel):
     description: str | None
     start_date: date | None
     end_date: date | None
-    status: str
+    status: ProjectStatus
     manager_id: int | None
     total_story_pts: int
-    health_status: str
+    health_status: ProjectHealthStatus
     done_story_pts: int | None = None
 
     class Config:
@@ -45,7 +46,7 @@ class MilestoneCreate(BaseModel):
 
 
 class MilestoneUpdate(BaseModel):
-    status: str  # NOT_STARTED | IN_PROGRESS | DONE
+    status: MilestoneStatus
 
 
 class MilestoneResponse(BaseModel):
@@ -54,7 +55,7 @@ class MilestoneResponse(BaseModel):
     title: str
     due_date: date | None
     story_points: int
-    status: str
+    status: MilestoneStatus
 
     class Config:
         from_attributes = True
@@ -65,3 +66,4 @@ class ProjectDetailResponse(BaseModel):
     milestones: list[MilestoneResponse]
     done_story_pts: int
     remaining_pts: int
+

@@ -8,6 +8,7 @@ class UserCreate(BaseModel):
     username: str
     temp_password: str
     role: str  # ADMIN | MANAGER | EMPLOYEE
+    department: str
 
 
 class UserResponse(BaseModel):

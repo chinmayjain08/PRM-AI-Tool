@@ -32,12 +32,12 @@ def _skills_submenu(emp_id: int, full_name: str) -> None:
 
         if skills:
             from client.utils.display import print_table_header, print_table_row
-            header = ["Skill ID", "Skill Name", "Category", "Proficiency"]
-            widths = [10, 16, 12, 14]
+            header = ["#", "Skill Name", "Category", "Proficiency"]
+            widths = [4, 18, 12, 14]
             print_table_header(header, widths)
-            for s in skills:
+            for idx, s in enumerate(skills, start=1):
                 print_table_row([
-                    s.get("skill_id"),
+                    idx,
                     s.get("skill_name"),
                     s.get("category"),
                     s.get("proficiency"),
@@ -95,13 +95,12 @@ def _update_proficiency_flow(emp_id: int, skills: list) -> None:
         return
         
     draw_box("UPDATE SKILL PROFICIENCY")
-    skill_id = prompt_integer("Enter Skill ID to update", 1, 99999)
-    
-    existing = next((s for s in skills if s.get("skill_id") == skill_id), None)
-    if not existing:
-        print_error("Skill ID not associated with this employee.")
-        input("Press Enter to continue...")
+    choice = prompt_integer(f"Enter Skill # to update (1-{len(skills)} or 0 to cancel)", 0, len(skills))
+    if choice == 0:
         return
+        
+    existing = skills[choice - 1]
+    skill_id = existing.get("skill_id")
 
     print(f"\nCurrent proficiency for {existing.get('skill_name')}: {existing.get('proficiency')}")
     print("\nSelect New Proficiency Level:")
@@ -122,13 +121,12 @@ def _remove_skill_flow(emp_id: int, skills: list) -> None:
         return
         
     draw_box("REMOVE SKILL FROM EMPLOYEE")
-    skill_id = prompt_integer("Enter Skill ID to remove", 1, 99999)
-    
-    existing = next((s for s in skills if s.get("skill_id") == skill_id), None)
-    if not existing:
-        print_error("Skill ID not associated with this employee.")
-        input("Press Enter to continue...")
+    choice = prompt_integer(f"Enter Skill # to remove (1-{len(skills)} or 0 to cancel)", 0, len(skills))
+    if choice == 0:
         return
+        
+    existing = skills[choice - 1]
+    skill_id = existing.get("skill_id")
 
     from client.utils.input_helpers import confirm_action
     if confirm_action(f"Remove skill '{existing.get('skill_name')}' from employee?"):

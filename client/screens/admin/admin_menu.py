@@ -9,10 +9,9 @@ def show_admin_menu(full_name: str) -> None:
         draw_box("ADMIN DASHBOARD", f"Welcome, {full_name} | {current_time}")
         
         options = [
-            "Manage Employees",
+            "Manage Employees & Accounts",
             "Manage Projects",
             "View All Allocations",
-            "Manage Users",
             "System Configuration",
             "Log Out"
         ]
@@ -29,11 +28,8 @@ def show_admin_menu(full_name: str) -> None:
             from client.screens.admin.view_all_allocations import show_view_all_allocations
             show_view_all_allocations()
         elif choice == 4:
-            from client.screens.admin.manage_users_menu import show_manage_users_menu
-            show_manage_users_menu()
-        elif choice == 5:
             from client.screens.admin.system_config import show_system_config
             show_system_config()
-        elif choice == 6:
+        elif choice == 5:
             print("\nLogging out...\n")
             break

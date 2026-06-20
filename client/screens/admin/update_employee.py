@@ -1,7 +1,7 @@
 from client.api_client import admin_api
 from client.api_client.http_client import ServerError
 from client.utils.display import draw_box, print_error, print_success
-from client.utils.input_helpers import prompt_integer, prompt_optional, confirm_action
+from client.utils.input_helpers import prompt_integer, prompt_optional, confirm_action, prompt_choice
 
 
 def show_update_employee() -> None:
@@ -22,7 +22,13 @@ def show_update_employee() -> None:
         print(f"  Department : {emp.get('department') or 'none'}")
         print(f"  Status     : {'ACTIVE' if emp.get('is_active') else 'INACTIVE'}\n")
 
-        new_dept = prompt_optional("New Department")
+        print("\nSelect New Department:")
+        departments = ["Engineering", "Delivery", "HR", "Finance", "Operations", "Keep current"]
+        dept_idx = prompt_choice("Department", departments)
+        new_dept = None
+        if dept_idx != 6:
+            new_dept = departments[dept_idx - 1].upper()
+
         active_str = prompt_optional("Is Active? (Y/N)").strip().upper()
         
         is_active = None

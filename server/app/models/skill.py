@@ -1,6 +1,7 @@
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Column, Integer, String, ForeignKey, Enum
 from sqlalchemy.orm import relationship
 from app.core.database import Base
+from app.models.enums import ProficiencyLevel
 
 
 class Skill(Base):
@@ -12,12 +13,13 @@ class Skill(Base):
 
 
 class EmployeeSkill(Base):
-    """Association table: Employee ↔ Skill with proficiency level."""
+    """Association table: EmployeeProfile ↔ Skill with proficiency level."""
     __tablename__ = "employee_skills"
 
-    employee_id = Column(Integer, ForeignKey("employees.id"), primary_key=True)
+    employee_id = Column(Integer, ForeignKey("employee_profiles.id"), primary_key=True)
     skill_id    = Column(Integer, ForeignKey("skills.id"), primary_key=True)
-    proficiency = Column(String(20))   # Beginner | Intermediate | Advanced
+    proficiency = Column(Enum("Beginner", "Intermediate", "Advanced", name="proficiency_level", native_enum=True))
 
-    employee = relationship("Employee", back_populates="skills")
+    employee = relationship("EmployeeProfile", back_populates="skills")
     skill    = relationship("Skill")
+

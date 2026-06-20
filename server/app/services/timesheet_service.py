@@ -10,6 +10,8 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.models.timesheet import Timesheet
 from app.repositories import allocation_repository, timesheet_repository
+from app.models.enums import TimesheetStatus
+
 
 
 def get_active_allocations_for_week(db: Session, employee_id: int, week_start: date) -> list:
@@ -37,7 +39,16 @@ def validate_timesheet_entry(
       3. hours_worked must be >= 0
       4. hours_worked must not exceed allocation% × max_weekly_hours / 100
       5. No duplicate submission for same employee + project + week
+      6. Employee profile must have the RESOURCE role
     """
+    from app.repositories import employee_repository
+    profile = employee_repository.get_employee_by_id(db, employee_id)
+    if not profile or not profile.employee or profile.employee.role.name != "RESOURCE":
+        raise ValueError("Only employees/resources can submit timesheets")
+        
+    if getattr(profile, "timesheet_frozen", False):
+        raise ValueError("Your timesheet access is frozen due to non-submission. Please contact your manager to restore access.")
+
     _assert_not_future_week(week_start)
     allocation = _get_allocation_for_entry(db, employee_id, project_id, week_start)
     _assert_hours_in_range(hours_worked, allocation)
@@ -94,7 +105,7 @@ def get_timesheet_history(db: Session, employee_id: int) -> list[dict]:
         history.append({
             "week_start":   w_start,
             "hours_worked": hours,
-            "status":       "SUBMITTED",
+            "status":       TimesheetStatus.SUBMITTED,
         })
         
     for missed_week in missed_weeks:
@@ -103,8 +114,9 @@ def get_timesheet_history(db: Session, employee_id: int) -> list[dict]:
             history.append({
                 "week_start":   missed_week,
                 "hours_worked": 0,
-                "status":       "MISSED",
+                "status":       TimesheetStatus.MISSED,
             })
+
 
     return sorted(history, key=lambda x: x["week_start"], reverse=True)
 
@@ -166,7 +178,7 @@ def _get_allocation_for_entry(db: Session, employee_id: int, project_id: int, we
 def _assert_hours_in_range(hours_worked: int, allocation) -> None:
     if hours_worked < 0:
         raise ValueError("Hours worked cannot be negative")
-    max_hours_for_project = _compute_max_project_hours(allocation)
+    max_hours_for_project = allocation.max_hours
     if hours_worked > max_hours_for_project:
         raise ValueError(
             f"Hours logged ({hours_worked}) exceeds the cap for this project. "
@@ -181,28 +193,31 @@ def _assert_no_duplicate_submission(
     week_start: date,
 ) -> None:
     existing = timesheet_repository.get_timesheet_for_week(db, employee_id, project_id, week_start)
-    if existing is not None:
+    if existing is not None and existing.status != TimesheetStatus.MISSED:
         raise ValueError(
             f"A timesheet for project ID {project_id} and week {week_start} has already been submitted"
         )
 
 
-def _compute_max_project_hours(allocation) -> int:
-    """Returns the maximum hours allowed for one project based on allocation %."""
-    from app.core.config import settings
-    return int(allocation.utilisation_percent * settings.DEFAULT_MAX_WEEKLY_HOURS / 100)
-
-
 def _save_single_entry(db: Session, employee_id: int, week_start: date, entry: dict) -> None:
-    timesheet = Timesheet(
-        employee_id  = employee_id,
-        project_id   = entry["project_id"],
-        week_start   = week_start,
-        hours_worked = entry["hours_worked"],
-        status       = "SUBMITTED",
-    )
-    saved = timesheet_repository.save_timesheet(db, timesheet)
-    timesheet_repository.save_tags(db, saved.id, entry.get("tags", []))
+    existing = timesheet_repository.get_timesheet_for_week(db, employee_id, entry["project_id"], week_start)
+    
+    if existing and existing.status == TimesheetStatus.MISSED:
+        existing.hours_worked = entry["hours_worked"]
+        existing.status = TimesheetStatus.SUBMITTED
+        timesheet_id = existing.id
+    else:
+        timesheet = Timesheet(
+            employee_id  = employee_id,
+            project_id   = entry["project_id"],
+            week_start   = week_start,
+            hours_worked = entry["hours_worked"],
+            status       = TimesheetStatus.SUBMITTED,
+        )
+        saved = timesheet_repository.save_timesheet(db, timesheet)
+        timesheet_id = saved.id
+
+    timesheet_repository.save_tags(db, timesheet_id, entry.get("tags", []))
 
 
 def _load_max_weekly_hours(db: Session) -> int:

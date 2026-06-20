@@ -1,3 +1,4 @@
+from datetime import datetime
 from client.api_client import manager_api
 from client.api_client.http_client import ServerError
 from client.utils.display import draw_box, draw_divider, print_error
@@ -75,6 +76,8 @@ def _drill_down_flow() -> None:
         print(f"  Department  : {emp.get('department') or 'none'}")
         print(f"  Joined At   : {emp.get('joined_at') or 'none'}")
         print(f"  Status      : {'ACTIVE' if emp.get('is_active') else 'INACTIVE'}")
+        if emp.get('timesheet_frozen'):
+            print("  Timesheets  : [FROZEN] - Requires Manager Override")
         
         print("\nSkills:")
         if emp.get("skills"):
@@ -85,13 +88,41 @@ def _drill_down_flow() -> None:
             
         print("\nActive Project Allocations:")
         if emp.get("allocations"):
+            print(f"  {'Project':<16} {'%':<5} {'From':<12} {'To':<12}")
+            print(f"  {'-'*16} {'-'*5} {'-'*12} {'-'*12}")
             for a in emp.get("allocations"):
-                print(f"  - Allocation ID: {a.get('id')} | Project: {a.get('project_name')} | Utilisation: {a.get('utilisation_percent')}% | Range: {a.get('from_date')} to {a.get('to_date')}")
+                from_dt_str = a.get("from_date")
+                to_dt_str = a.get("to_date")
+                try:
+                    from_dt_str = datetime.strptime(from_dt_str, "%Y-%m-%d").strftime("%d-%m-%Y")
+                    to_dt_str = datetime.strptime(to_dt_str, "%Y-%m-%d").strftime("%d-%m-%Y")
+                except (ValueError, TypeError):
+                    pass
+                util_str = f"{a.get('utilisation_percent')}%"
+                print(f"  {a.get('project_name'):<16} {util_str:<5} {from_dt_str:<12} {to_dt_str:<12}")
         else:
             print("  No active allocations.")
             
         print()
         draw_divider()
+        if emp.get('timesheet_frozen'):
+            print("  [R] Restore Timesheet Access")
+        print("  [B] Back to Dashboard\n")
+        
+        while True:
+            action = input("Action: ").strip().upper()
+            if action == "B":
+                return
+            elif action == "R" and emp.get('timesheet_frozen'):
+                try:
+                    manager_api.restore_timesheet_access(emp.get("id"))
+                    print("\nSuccess: Timesheet access restored!")
+                    break
+                except ServerError as error:
+                    print_error(str(error))
+            else:
+                print_error("Invalid option.")
+                
         input("\nPress Enter to return to dashboard...")
     except ServerError as error:
         print_error(str(error))

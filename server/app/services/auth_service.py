@@ -1,12 +1,12 @@
 """
 Authentication business rules.
-No SQL here — calls user_repository for data.
+No SQL here — calls employee_repository for data.
 No HTTP here — raises ValueError; the route layer converts to HTTP responses.
 """
 
 from app.core.config import settings
 from app.core.security import hash_password, verify_password, create_access_token
-from app.repositories import user_repository
+from app.repositories import employee_repository
 
 
 def login(db, username: str, password: str) -> dict:
@@ -14,7 +14,7 @@ def login(db, username: str, password: str) -> dict:
     Validates credentials and returns login data.
     Raises ValueError on any failure (wrong password, inactive user, not found).
     """
-    user = user_repository.get_user_by_username(db, username)
+    user = employee_repository.get_employee_by_username(db, username)
 
     if user is None or not user.is_active:
         raise ValueError("Invalid username or password")
@@ -22,11 +22,15 @@ def login(db, username: str, password: str) -> dict:
     if not verify_password(password, user.hashed_password):
         raise ValueError("Invalid username or password")
 
-    token = create_access_token({"sub": user.username, "role": user.role})
+    token = create_access_token({"sub": user.username, "role": user.role.name})
+
+    role_name = user.role.name
+    if role_name == "RESOURCE":
+        role_name = "EMPLOYEE"
 
     return {
         "access_token":         token,
-        "role":                 user.role,
+        "role":                 role_name,
         "full_name":            user.full_name,
         "force_password_change": user.force_password_change,
     }
@@ -39,8 +43,8 @@ def change_password(db, user_id: int, new_password: str) -> None:
     """
     validate_password_strength(new_password)
     hashed = hash_password(new_password)
-    user_repository.update_user_password(db, user_id, hashed)
-    user_repository.set_force_password_change(db, user_id, False)
+    employee_repository.update_employee_password(db, user_id, hashed)
+    employee_repository.set_employee_force_password_change(db, user_id, False)
 
 
 def validate_password_strength(password: str) -> None:

@@ -2,20 +2,20 @@ from datetime import date, timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import get_db, require_employee
-from app.models.user import User
+from app.core.dependencies import get_db, require_permission
+from app.models.employee import Employee
 from app.repositories import allocation_repository, employee_repository
 from app.services import timesheet_service
 from app.schemas.timesheet_schemas import TimesheetSubmission
 from app.schemas.allocation_schemas import AllocationResponse
 
-router = APIRouter(dependencies=[Depends(require_employee)])
+router = APIRouter()
 
 
 @router.get("/allocations", response_model=list[AllocationResponse])
 def get_my_allocations(
     db:           Session = Depends(get_db),
-    current_user: User    = Depends(require_employee),
+    current_user: Employee    = Depends(require_permission("VIEW_OWN_ALLOCATIONS")),
 ):
     """Returns the logged-in employee's own allocation history."""
     employee = employee_repository.get_employee_by_user_id(db, current_user.id)
@@ -28,7 +28,7 @@ def get_my_allocations(
 def get_active_allocations_for_week(
     week_start:   str    = None,
     db:           Session = Depends(get_db),
-    current_user: User    = Depends(require_employee),
+    current_user: Employee    = Depends(require_permission("VIEW_OWN_ALLOCATIONS")),
 ):
     """Returns projects the employee should log time for during the given week."""
     employee = employee_repository.get_employee_by_user_id(db, current_user.id)
@@ -41,7 +41,7 @@ def get_active_allocations_for_week(
 @router.get("/timesheets")
 def get_my_timesheet_history(
     db:           Session = Depends(get_db),
-    current_user: User    = Depends(require_employee),
+    current_user: Employee    = Depends(require_permission("SUBMIT_OWN_TIMESHEET")),
 ):
     """Returns full timesheet history with SUBMITTED and MISSED weeks."""
     employee = employee_repository.get_employee_by_user_id(db, current_user.id)
@@ -54,7 +54,7 @@ def get_my_timesheet_history(
 def get_week_detail(
     week_start:   str,
     db:           Session = Depends(get_db),
-    current_user: User    = Depends(require_employee),
+    current_user: Employee    = Depends(require_permission("SUBMIT_OWN_TIMESHEET")),
 ):
     """Returns detailed timesheet for one week — project rows + hours + tags."""
     employee  = employee_repository.get_employee_by_user_id(db, current_user.id)
@@ -71,7 +71,7 @@ def get_week_detail(
 def submit_timesheet(
     submission:   TimesheetSubmission,
     db:           Session = Depends(get_db),
-    current_user: User    = Depends(require_employee),
+    current_user: Employee    = Depends(require_permission("SUBMIT_OWN_TIMESHEET")),
 ):
     """
     Submits timesheet entries for the given week.
@@ -95,7 +95,7 @@ def submit_timesheet(
 @router.get("/missed-weeks")
 def get_missed_weeks(
     db:           Session = Depends(get_db),
-    current_user: User    = Depends(require_employee),
+    current_user: Employee    = Depends(require_permission("SUBMIT_OWN_TIMESHEET")),
 ):
     """Returns list of past week_start dates where the employee missed a submission."""
     employee = employee_repository.get_employee_by_user_id(db, current_user.id)

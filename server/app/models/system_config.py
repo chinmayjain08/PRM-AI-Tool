@@ -7,7 +7,7 @@ class SystemConfig(Base):
     __tablename__ = "system_config"
 
     id                 = Column(Integer, primary_key=True, default=1)
-    llm_provider       = Column(String(50), default="gemini")
+    llm_provider       = Column(String(50), default="ollama")
     llm_api_key        = Column(Text)
     scheduler_interval = Column(Integer, default=4)    # hours
     max_weekly_hours   = Column(Integer, default=40)

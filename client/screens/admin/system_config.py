@@ -42,7 +42,7 @@ def show_system_config() -> None:
 
 def _update_provider_flow() -> None:
     draw_box("UPDATE LLM PROVIDER")
-    providers = ["gemini", "groq"]
+    providers = ["gemini", "groq", "ollama"]
     p_idx = prompt_choice("Select Provider", providers)
     provider = providers[p_idx - 1]
 

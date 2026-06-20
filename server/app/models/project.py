@@ -1,6 +1,7 @@
-from sqlalchemy import Column, Integer, String, Text, Date, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, Date, ForeignKey, Enum
 from sqlalchemy.orm import relationship
 from app.core.database import Base
+from app.models.enums import ProjectStatus, ProjectHealthStatus, MilestoneStatus
 
 
 class Project(Base):
@@ -11,12 +12,12 @@ class Project(Base):
     description     = Column(Text)
     start_date      = Column(Date)
     end_date        = Column(Date)
-    status          = Column(String(20), default="PLANNED")       # PLANNED|ACTIVE|ON_HOLD|COMPLETED
-    manager_id      = Column(Integer, ForeignKey("users.id"))
+    status          = Column(Enum(ProjectStatus, name="project_status", native_enum=True), default=ProjectStatus.PLANNED)
+    manager_id      = Column(Integer, ForeignKey("employees.id"))
     total_story_pts = Column(Integer, default=0)
-    health_status   = Column(String(20), default="ON_TRACK")      # ON_TRACK|ATTENTION|AT_RISK
+    health_status   = Column(Enum(ProjectHealthStatus, name="project_health_status", native_enum=True), default=ProjectHealthStatus.ON_TRACK)
 
-    manager    = relationship("User")
+    manager    = relationship("Employee")
     milestones = relationship("Milestone", back_populates="project")
 
 
@@ -28,6 +29,7 @@ class Milestone(Base):
     title        = Column(String(200), nullable=False)
     due_date     = Column(Date)
     story_points = Column(Integer, default=0)
-    status       = Column(String(20), default="NOT_STARTED")      # NOT_STARTED|IN_PROGRESS|DONE
+    status       = Column(Enum(MilestoneStatus, name="milestone_status", native_enum=True), default=MilestoneStatus.NOT_STARTED)
 
     project = relationship("Project", back_populates="milestones")
+

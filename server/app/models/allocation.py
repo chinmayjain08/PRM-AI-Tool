@@ -7,19 +7,23 @@ class Allocation(Base):
     __tablename__ = "allocations"
 
     id                  = Column(Integer, primary_key=True, index=True)
-    employee_id         = Column(Integer, ForeignKey("employees.id"))
+    employee_id         = Column(Integer, ForeignKey("employee_profiles.id"))
     project_id          = Column(Integer, ForeignKey("projects.id"))
     utilisation_percent = Column(Integer, nullable=False)    # 0 to 100
     from_date           = Column(Date, nullable=False)
     to_date             = Column(Date, nullable=False)
     is_active           = Column(Boolean, default=True)
 
-    employee = relationship("Employee", back_populates="allocations")
+    employee = relationship("EmployeeProfile", back_populates="allocations")
     project  = relationship("Project")
 
     @property
     def project_name(self) -> str:
         return self.project.name if self.project else f"Project {self.project_id}"
+
+    @property
+    def employee_name(self) -> str:
+        return self.employee.employee.full_name if (self.employee and self.employee.employee) else f"Employee {self.employee_id}"
 
     @property
     def max_hours(self) -> int:

@@ -1,3 +1,4 @@
+from datetime import datetime
 from client.api_client import admin_api
 from client.api_client.http_client import ServerError
 from client.utils.display import draw_box, draw_divider, print_error
@@ -16,20 +17,25 @@ def show_view_all_allocations() -> None:
             print_error(str(error))
             return
 
-        header = ["ID", "Employee ID", "Project ID", "Util %", "From Date", "To Date", "Active"]
-        widths = [6, 13, 12, 8, 12, 12, 8]
+        header = ["Employee", "Project", "%", "From", "To"]
+        widths = [18, 18, 6, 12, 12]
         
         from client.utils.display import print_table_header, print_table_row
         print_table_header(header, widths)
         for a in allocs:
+            from_dt_str = a.get("from_date")
+            to_dt_str = a.get("to_date")
+            try:
+                from_dt_str = datetime.strptime(from_dt_str, "%Y-%m-%d").strftime("%d-%m-%Y")
+                to_dt_str = datetime.strptime(to_dt_str, "%Y-%m-%d").strftime("%d-%m-%Y")
+            except (ValueError, TypeError):
+                pass
             print_table_row([
-                a.get("id"),
-                a.get("employee_id"),
-                a.get("project_id"),
+                a.get("employee_name") or f"ID {a.get('employee_id')}",
+                a.get("project_name") or f"ID {a.get('project_id')}",
                 f"{a.get('utilisation_percent')}%",
-                a.get("from_date"),
-                a.get("to_date"),
-                "YES" if a.get("is_active") else "NO",
+                from_dt_str,
+                to_dt_str,
             ], widths)
 
         draw_divider()

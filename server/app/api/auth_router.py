@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_db, get_current_user
-from app.models.user import User
+from app.models.employee import Employee
 from app.schemas.auth_schemas import (
     ChangePasswordRequest,
     LoginRequest,
@@ -15,7 +15,6 @@ from app.schemas.auth_schemas import (
     MessageResponse,
 )
 from app.services import auth_service
-
 
 router = APIRouter()
 
@@ -33,7 +32,7 @@ def login(body: LoginRequest, db: Session = Depends(get_db)):
 def change_password(
     body:         ChangePasswordRequest,
     db:           Session = Depends(get_db),
-    current_user: User    = Depends(get_current_user),
+    current_user: Employee = Depends(get_current_user),
 ):
     """Changes password for the currently logged-in user."""
     if body.new_password != body.confirm_password:

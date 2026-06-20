@@ -14,7 +14,7 @@ def show_view_all_projects() -> None:
             return
 
         header = ["ID", "Name", "Status", "Story Pts (Done/Total)", "Health"]
-        widths = [6, 14, 10, 24, 8]
+        widths = [6, 14, 10, 24, 14]
         
         from client.utils.display import print_table_header, print_table_row
         print_table_header(header, widths)

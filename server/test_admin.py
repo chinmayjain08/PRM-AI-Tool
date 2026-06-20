@@ -5,7 +5,7 @@ BASE_URL = "http://localhost:8000"
 
 def run_tests():
     print("1. Logging in as Admin...")
-    r = requests.post(f"{BASE_URL}/auth/login", json={"username": "admin", "password": "NewAdmin@123"})
+    r = requests.post(f"{BASE_URL}/auth/login", json={"username": "admin", "password": "Chinmay@08"})
     if r.status_code != 200:
         print(f"FAILED Admin login: {r.status_code} - {r.text}")
         sys.exit(1)
@@ -20,7 +20,8 @@ def run_tests():
         "email": "manager@prmtool.com",
         "username": "manager1",
         "temp_password": "Manager@123",
-        "role": "MANAGER"
+        "role": "MANAGER",
+        "department": "DELIVERY"
     }
     r = requests.post(f"{BASE_URL}/admin/users", json=manager_data, headers=headers)
     if r.status_code != 201:
@@ -35,7 +36,8 @@ def run_tests():
         "email": "employee@prmtool.com",
         "username": "employee1",
         "temp_password": "Employee@123",
-        "role": "EMPLOYEE"
+        "role": "EMPLOYEE",
+        "department": "ENGINEERING"
     }
     r = requests.post(f"{BASE_URL}/admin/users", json=employee_data, headers=headers)
     if r.status_code != 201:
@@ -120,7 +122,7 @@ def run_tests():
     print(f"System Config: {config}")
 
     print("\n12. Updating System Config...")
-    r = requests.put(f"{BASE_URL}/admin/config", json={"llm_provider": "gemini", "max_weekly_hours": 40}, headers=headers)
+    r = requests.put(f"{BASE_URL}/admin/config", json={"llm_provider": "ollama", "max_weekly_hours": 40}, headers=headers)
     print(f"Config update status: {r.status_code} - {r.json()}")
     assert r.status_code == 200
 

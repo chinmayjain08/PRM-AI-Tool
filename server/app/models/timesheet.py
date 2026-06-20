@@ -1,6 +1,7 @@
-from sqlalchemy import Column, Integer, Date, String, DateTime, ForeignKey, UniqueConstraint, func
+from sqlalchemy import Column, Integer, Date, String, DateTime, ForeignKey, UniqueConstraint, func, Enum
 from sqlalchemy.orm import relationship
 from app.core.database import Base
+from app.models.enums import TimesheetStatus
 
 
 class Timesheet(Base):
@@ -10,14 +11,16 @@ class Timesheet(Base):
     )
 
     id           = Column(Integer, primary_key=True, index=True)
-    employee_id  = Column(Integer, ForeignKey("employees.id"))
+    employee_id  = Column(Integer, ForeignKey("employee_profiles.id"))
     project_id   = Column(Integer, ForeignKey("projects.id"))
     week_start   = Column(Date, nullable=False)             # Always a Monday
     hours_worked = Column(Integer, nullable=False)
-    status       = Column(String(20), default="SUBMITTED")  # SUBMITTED | MISSED
+    status         = Column(Enum(TimesheetStatus, name="timesheet_status", native_enum=True), default=TimesheetStatus.SUBMITTED)
+    reminder_count = Column(Integer, default=0)
+
     submitted_at = Column(DateTime, server_default=func.now())
 
-    employee = relationship("Employee", back_populates="timesheets")
+    employee = relationship("EmployeeProfile", back_populates="timesheets")
     project  = relationship("Project")
     tags     = relationship("TimesheetTag", back_populates="timesheet")
 

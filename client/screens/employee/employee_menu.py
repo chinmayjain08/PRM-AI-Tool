@@ -12,7 +12,7 @@ def show_employee_menu(full_name: str) -> None:
         
         # Check for missed timesheets
         try:
-            missed_weeks = employee_api.fetch_missed_weeks()
+            missed_weeks = employee_api.fetch_missed_weeks().get("missed_weeks", [])
             if missed_weeks:
                 print_warning("WARNING: You have missed timesheet submissions for the following weeks:")
                 for week in missed_weeks:

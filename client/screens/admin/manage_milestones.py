@@ -33,12 +33,12 @@ def _milestones_submenu(project_id: int) -> None:
 
         if milestones:
             from client.utils.display import print_table_header, print_table_row
-            header = ["ID", "Title", "Due Date", "Story Pts", "Status"]
-            widths = [6, 16, 12, 10, 14]
+            header = ["#", "Title", "Due Date", "Story Pts", "Status"]
+            widths = [4, 18, 12, 10, 14]
             print_table_header(header, widths)
-            for m in milestones:
+            for idx, m in enumerate(milestones, start=1):
                 print_table_row([
-                    m.get("id"),
+                    idx,
                     m.get("title"),
                     m.get("due_date"),
                     m.get("story_points"),
@@ -86,23 +86,24 @@ def _update_milestone_flow(project_id: int, milestones: list) -> None:
         print_error("No milestones available to update.")
         input("Press Enter to continue...")
         return
-        
+
     draw_box("UPDATE MILESTONE STATUS")
-    m_id = prompt_integer("Enter Milestone ID to update", 1, 99999)
-    
-    existing = next((m for m in milestones if m.get("id") == m_id), None)
-    if not existing:
-        print_error("Milestone ID not associated with this project.")
-        input("Press Enter to continue...")
+    choice = prompt_integer(f"Enter Milestone # to update (1-{len(milestones)} or 0 to cancel)", 0, len(milestones))
+    if choice == 0:
         return
 
-    print(f"\nCurrent status for '{existing.get('title')}': {existing.get('status')}")
+    existing = milestones[choice - 1]
+    m_id = existing.get("id")
+
     print("\nSelect New Milestone Status:")
     status_idx = prompt_choice("Status", MILESTONE_STATUSES)
     status = MILESTONE_STATUSES[status_idx - 1]
-
-    try:
-        admin_api.update_milestone_status(m_id, status)
-        print_success("Milestone status updated successfully.")
-    except ServerError as error:
-        print_error(str(error))
+    
+    if confirm_action(f"Update milestone '{existing.get('title')}' status to {status}?"):
+        try:
+            admin_api.update_milestone_status(m_id, status)
+            print_success("Milestone status updated successfully. ✓")
+            input("\nPress Enter to continue...")
+        except ServerError as error:
+            print_error(str(error))
+            input("\nPress Enter to continue...")

@@ -8,18 +8,19 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.repositories import project_repository, allocation_repository, timesheet_repository
+from app.models.enums import ProjectHealthStatus, ProjectStatus, MilestoneStatus
 
 
-def compute_health_for_project(db: Session, project_id: int) -> str:
+def compute_health_for_project(db: Session, project_id: int) -> ProjectHealthStatus:
     """
-    Returns "ON_TRACK", "ATTENTION", or "AT_RISK" for the given project.
+    Returns ProjectHealthStatus.ON_TRACK, ATTENTION, or AT_RISK for the given project.
     AT_RISK is checked first; if true, ATTENTION is skipped.
     """
     if _has_at_risk_conditions(db, project_id):
-        return "AT_RISK"
+        return ProjectHealthStatus.AT_RISK
     if _has_attention_conditions(db, project_id):
-        return "ATTENTION"
-    return "ON_TRACK"
+        return ProjectHealthStatus.ATTENTION
+    return ProjectHealthStatus.ON_TRACK
 
 
 def collect_risk_flags(db: Session, project_id: int) -> list[str]:
@@ -30,7 +31,7 @@ def collect_risk_flags(db: Session, project_id: int) -> list[str]:
     milestones = project_repository.get_milestones_for_project(db, project_id)
 
     for milestone in milestones:
-        if milestone.status != "DONE" and milestone.due_date and milestone.due_date < today:
+        if milestone.status != MilestoneStatus.DONE and milestone.due_date and milestone.due_date < today:
             days_overdue = (today - milestone.due_date).days
             flags.append(f"{milestone.title} milestone is {days_overdue} day(s) overdue")
 
@@ -44,7 +45,7 @@ def update_all_project_health_statuses(db: Session) -> None:
     """Called by background scheduler. Updates health_status for every ACTIVE project."""
     active_projects = (
         db.query(project_repository.Project)
-        .filter(project_repository.Project.status == "ACTIVE")
+        .filter(project_repository.Project.status == ProjectStatus.ACTIVE)
         .all()
     )
     for project in active_projects:
@@ -57,7 +58,7 @@ def _has_at_risk_conditions(db: Session, project_id: int) -> bool:
     milestones = project_repository.get_milestones_for_project(db, project_id)
 
     for milestone in milestones:
-        if milestone.status != "DONE" and milestone.due_date and milestone.due_date < today:
+        if milestone.status != MilestoneStatus.DONE and milestone.due_date and milestone.due_date < today:
             return True
 
     return bool(_get_low_effort_flags(db, project_id))
@@ -73,11 +74,12 @@ def _has_attention_conditions(db: Session, project_id: int) -> bool:
 
     deadline_approaching = project.end_date - today <= threshold
     milestones           = project_repository.get_milestones_for_project(db, project_id)
-    done_pts             = sum(m.story_points for m in milestones if m.status == "DONE")
+    done_pts             = sum(m.story_points for m in milestones if m.status == MilestoneStatus.DONE)
     total_pts            = project.total_story_pts or 1   # avoid divide by zero
     below_half_done      = done_pts < (total_pts / 2)
 
     return deadline_approaching and below_half_done
+
 
 
 def _get_low_effort_flags(db: Session, project_id: int) -> list[str]:

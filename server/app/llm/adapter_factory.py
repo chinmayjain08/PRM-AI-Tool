@@ -5,7 +5,7 @@ Callers do not need to know which adapter they are using.
 
 from app.llm.base_adapter import LLMAdapter
 
-SUPPORTED_PROVIDERS = ("gemini", "groq")
+SUPPORTED_PROVIDERS = ("gemini", "groq", "ollama")
 
 
 def get_llm_adapter(db) -> LLMAdapter:
@@ -28,8 +28,10 @@ def get_llm_adapter(db) -> LLMAdapter:
             api_key = settings.GEMINI_API_KEY
         elif provider == "groq":
             api_key = settings.GROQ_API_KEY
+        elif provider == "ollama":
+            api_key = settings.OLLAMA_API_KEY or ""   # Ollama may not need a key
 
-    if not api_key or api_key.strip() == "":
+    if not api_key and provider not in ("ollama",):
         raise ValueError("LLM API key is not set or is empty. Please configure it in System Configuration or .env.")
 
     if provider == "gemini":
@@ -39,6 +41,10 @@ def get_llm_adapter(db) -> LLMAdapter:
     if provider == "groq":
         from app.llm.groq_adapter import GroqAdapter
         return GroqAdapter(api_key=api_key)
+
+    if provider == "ollama":
+        from app.llm.ollama_adapter import OllamaAdapter
+        return OllamaAdapter(api_key=api_key or "")
 
     raise ValueError(
         f"Unknown LLM provider: '{config.llm_provider}'. "

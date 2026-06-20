@@ -68,9 +68,13 @@ def validate_new_allocation(
     to_date: date,
 ) -> None:
     """
-    Checks date order and that adding this allocation will not exceed
-    MAX_UTILISATION_PERCENT. Raises ValueError with a clear message on failure.
+    Checks date order, that the employee is a RESOURCE, and that adding this 
+    allocation will not exceed MAX_UTILISATION_PERCENT.
     """
+    employee = employee_repository.get_employee_by_id(db, employee_id)
+    if not employee or not employee.employee or employee.employee.role.name != "RESOURCE":
+        raise ValueError("Allocations can only be created for employees/resources")
+
     if from_date >= to_date:
         raise ValueError("From date must be before to date")
 

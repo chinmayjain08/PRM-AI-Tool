@@ -51,8 +51,21 @@ def generate_risk_summary(db: Session, project_id: int) -> str:
         risk_flags       = "\n".join(f"- {flag}" for flag in risk_flags) or "None identified",
     )
 
-    llm = get_llm_adapter(db)
-    return llm.complete(prompt)
+    try:
+        llm = get_llm_adapter(db)
+        return llm.complete(prompt)
+    except Exception as error:
+        # Graceful fallback: construct summary from risk flags directly
+        if not risk_flags:
+            return "The AI analysis service is temporarily unavailable. Factual analysis shows all milestones are on track, and allocated resources are logging their expected hours."
+        
+        fallback_msg = (
+            "The AI analysis service is temporarily unavailable, but the following project risks were automatically detected:\n"
+        )
+        for flag in risk_flags:
+            fallback_msg += f"  ✗  {flag}\n"
+        fallback_msg += "Please review these items with the project team."
+        return fallback_msg
 
 
 def _format_milestones(milestones: list) -> str:
